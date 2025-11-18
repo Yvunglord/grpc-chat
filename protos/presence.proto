@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package presence;
+
+import "google/protobuf/timestamp.proto";
+
+service PresenceService {
+    rpc UpdatePresence(PresenceUpdate) returns (PresenceResponse);
+    rpc GetOnlineUsers(OnlineUsersRequest) returns (OnlineUsersResponse);
+    rpc StreamPresenceUpdate(StreamRequest) returns (stream PresenceUpdate);
+    rpc UpdateTypingStatus(TypingUpdate) returns (PresenceResponse);
+}
+
+enum UserStatus {
+    UNKNOWN = 0;
+    ONLINE = 1;
+    OFFLINE = 2;
+    AWAY = 3;
+    DO_NOT_DISTURB = 4;
+    CUSTOM = 5;
+}
+
+message PresenceUpdate {
+    string user_id = 1;
+    UserStatus status = 2;
+    string custom_status = 3;
+    google.protobuf.Timestamp last_seen = 4;
+    bool is_typing = 5;
+    string chat_id = 6;
+}
+
+message PresenceResponse {
+    bool success = 1;
+    string message = 2;
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message OnlineUsersRequest {
+    string chat_id = 1;
+    repeated string user_ids = 2;
+    int32 limit = 3;
+}
+
+message OnlineUsersResponse {
+    repeated PresenceUpdate online_users = 1;
+    int32 total_count = 2;
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message StreamRequest {
+    string user_id = 1;
+    repeated string chat_ids = 2;
+    repeated string events = 3;
+}
+
+message TypingUpdate {
+    string user_id = 1;
+    string chat_id = 2;
+    bool is_typing = 3;
+}

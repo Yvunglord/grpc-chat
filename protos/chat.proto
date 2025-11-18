@@ -1,0 +1,297 @@
+syntax = "proto3";
+
+package chat;
+
+import "google/protobuf/timestamp.proto";
+import "presence.proto";
+
+service ChatService {
+    rpc CreateChat(CreateChatRequest) returns (ChatResponse);
+    rpc GetChat(GetChatRequest) returns (ChatResponse);
+    rpc GetUserChats(GetUserChatsRequest) returns (GetUserChatsResponse);
+    rpc AddParticipants(AddParticipantsRequest) returns (ChatResponse);
+    rpc RemoveParticipants(RemoveParticipantsRequest) returns (ChatResponse);
+    rpc LeaveChat(LeaveChatRequest) returns (LeaveChatResponse);
+    
+    rpc SendMessage(SendMessageRequest) returns (MessageResponse);
+    rpc EditMessage(EditMessageRequest) returns (MessageResponse);
+    rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+    rpc GetMessage(GetMessageRequest) returns (MessageResponse);
+    
+    rpc GetChatHistory(GetChatHistoryRequest) returns (ChatHistoryResponse);
+    rpc SearchMessages(SearchMessagesRequest) returns (SearchMessagesResponse);
+    
+    rpc MarkAsRead(MarkReadRequest) returns (MarkReadResponse);
+    rpc MarkAsDelivered(MarkDeliveredRequest) returns (MarkDeliveredResponse);
+    rpc GetUnreadCount(UnreadCountRequest) returns (UnreadCountResponse);
+    
+    rpc StreamMessages(StreamMessagesRequest) returns (stream StreamMessage);
+    rpc StreamChatEvents(StreamChatEventsRequest) returns (stream ChatEvent);
+}
+
+enum MessageType {
+    TEXT = 0;
+    IMAGE = 1;
+    FILE = 2;
+    SYSTEM = 3;
+    VOICE = 4;
+    VIDEO = 5;
+}
+
+enum MessageStatus {
+    SENDING = 0;
+    SENT = 1;
+    DELIVERED = 2;
+    READ = 3;
+    FAILED = 4;
+}
+
+enum ChatType {
+    DIRECT = 0;
+    GROUP = 1;
+    CHANNEL = 2;
+}
+
+enum ChatEventType {
+    MESSAGE_SENT = 0;
+    MESSAGE_EDITED = 1;
+    MESSAGE_DELETED = 2;
+    USER_JOINED = 3;
+    USER_LEFT = 4;
+    USER_TYPING = 5;
+    USER_STOPPED_TYPING = 6;
+    CHAT_UPDATED = 7;
+}
+
+message CreateChatRequest {
+    string name = 1;
+    repeated string participant_ids = 2;
+    ChatType chat_type = 3;
+    string description = 4;
+    string avatar_url = 5;
+}
+
+message GetChatRequest {
+    string chat_id = 1;
+}
+
+message GetUserChatsRequest {
+    string user_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+    bool include_archived = 4;
+}
+
+message GetUserChatsResponse {
+    repeated ChatResponse chats = 1;
+    int32 total_count = 2;
+    bool has_more = 3;
+    string next_offset = 4;
+}
+
+message AddParticipantsRequest {
+    string chat_id = 1;
+    repeated string user_ids = 2;
+    string added_by = 3;
+}
+
+message RemoveParticipantsRequest {
+    string chat_id = 1;
+    repeated string user_ids = 2;
+    string removed_by = 3;
+}
+
+message LeaveChatRequest {
+    string chat_id = 1;
+    string user_id = 2;
+}
+
+message LeaveChatResponse {
+    bool success = 1;
+}
+
+message ChatResponse {
+    string chat_id = 1;
+    string name = 2;
+    string description = 3;
+    ChatType chat_type = 4;
+    repeated string participant_ids = 5;
+    repeated ChatParticipant participants = 6;
+    string created_by = 7;
+    string avatar_url = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+    MessageResponse last_message = 11;
+    int32 unread_count = 12;
+    bool is_archived = 13;
+    map<string, string> settings = 14;
+}
+
+message ChatParticipant {
+    string user_id = 1;
+    string role = 2;
+    google.protobuf.Timestamp joined_at = 3;
+    google.protobuf.Timestamp last_read_at = 4;
+}
+
+message SendMessageRequest {
+    string chat_id = 1;
+    string sender_id = 2;
+    string content = 3;
+    MessageType message_type = 4;
+    string reply_to_message_id = 5;
+    map<string, string> metadata = 6;
+}
+
+message EditMessageRequest {
+    string message_id = 1;
+    string chat_id = 2;
+    string user_id = 3;
+    string new_content = 4;
+    map<string, string> updated_metadata = 5;
+}
+
+message DeleteMessageRequest {
+    string message_id = 1;
+    string chat_id = 2;
+    string user_id = 3;
+    bool for_everyone = 4;
+}
+
+message DeleteMessageResponse {
+    bool success = 1;
+    string deleted_message_id = 2;
+}
+
+message GetMessageRequest {
+    string message_id = 1;
+    string chat_id = 2;
+}
+
+message MessageResponse {
+    string message_id = 1;
+    string chat_id = 2;
+    string sender_id = 3;
+    string content = 4;
+    MessageType message_type = 5;
+    MessageStatus status = 6;
+    google.protobuf.Timestamp timestamp = 7;
+    google.protobuf.Timestamp edited_at = 8;
+    string reply_to_message_id = 9;
+    MessageResponse reply_to_message = 10;
+    map<string, string> metadata = 11;
+    repeated string read_by = 12;
+    repeated string delivered_to = 13;
+}
+
+message GetChatHistoryRequest {
+    string chat_id = 1;
+    int32 limit = 2;
+    string before_message_id = 3;
+    string after_message_id = 4;
+    google.protobuf.Timestamp since = 5;
+    google.protobuf.Timestamp until = 6;
+    repeated MessageType message_types = 7;
+}
+
+message ChatHistoryResponse {
+    repeated MessageResponse messages = 1;
+    bool has_more = 2;
+    string next_before_message_id = 3;
+    string next_after_message_id = 4;
+    int32 total_count = 5;
+}
+
+message SearchMessagesRequest {
+    string query = 1;
+    string chat_id = 2;
+    string user_id = 3;
+    int32 limit = 4;
+    int32 offset = 5;
+    repeated MessageType message_types = 6;
+    google.protobuf.Timestamp since = 7;
+    google.protobuf.Timestamp until = 8;
+}
+
+message SearchMessagesResponse {
+    repeated MessageResponse messages = 1;
+    int32 total_count = 2;
+    bool has_more = 3;
+    string next_offset = 4;
+}
+
+message MarkReadRequest {
+    string chat_id = 1;
+    string user_id = 2;
+    string up_to_message_id = 3;
+    google.protobuf.Timestamp read_at = 4;
+}
+
+message MarkReadResponse {
+    bool success = 1;
+    int32 marked_count = 2;
+    string last_read_message_id = 3;
+}
+
+message MarkDeliveredRequest {
+    string chat_id = 1;
+    string user_id = 2;
+    repeated string message_ids = 3;
+}
+
+message MarkDeliveredResponse {
+    bool success = 1;
+    int32 marked_count = 2;
+}
+
+message UnreadCountRequest {
+    string user_id = 1;
+    repeated string chat_ids = 2;
+}
+
+message UnreadCountResponse {
+    int32 total_unread = 1;
+    map<string, int32> unread_by_chat = 2;
+}
+
+message StreamMessagesRequest {
+    string user_id = 1;
+    repeated string chat_ids = 2;
+}
+
+message StreamChatEventsRequest {
+    string user_id = 1;
+    repeated string chat_ids = 2;
+    repeated ChatEventType event_types = 3;
+}
+
+message StreamMessage {
+    oneof event {
+        MessageResponse new_message = 1;
+        MessageResponse edited_message = 2;
+        string deleted_message_id = 3;
+        presence.TypingUpdate typing_update = 4;
+        MessageStatusUpdate status_update = 5;
+    }
+}
+
+message ChatEvent {
+    ChatEventType type = 1;
+    string chat_id = 2;
+    google.protobuf.Timestamp timestamp = 3;
+    
+    oneof event_data {
+        MessageResponse message = 4;
+        string user_id = 5;
+        string typing_user_id = 6;
+        ChatResponse chat_update = 7;
+    }
+}
+
+message MessageStatusUpdate {
+    string message_id = 1;
+    string chat_id = 2;
+    MessageStatus status = 3;
+    string user_id = 4;
+    google.protobuf.Timestamp updated_at = 5;
+}

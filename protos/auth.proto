@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package auth;
+
+import "google/protobuf/timestamp.proto";
+
+service AuthService {
+    rpc Register(RegisterRequest) returns (AuthResponse);
+    rpc Login(LoginRequest) returns (AuthResponse);
+    rpc RefreshToken(RefreshRequest) returns (AuthResponse);
+    rpc ValidateToken(ValidateRequest) returns (ValidateResponse);
+    rpc Logout(LogoutRequest) returns (LogoutResponse);
+    rpc UpdateProfile(UpdateProfileRequest) returns (ProfileResponse);
+}
+
+message User {
+    string id = 1;
+    string email = 2;
+    string username = 3;
+    string first_name = 4;
+    string last_name = 5;
+    string avatar_url = 6;
+    bool is_online = 7;
+    google.protobuf.Timestamp last_seen = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+}
+
+message RegisterRequest {
+    string email = 1;
+    string password = 2;
+    string username = 3;
+    string first_name = 4;
+    string last_name = 5;
+}
+
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message RefreshRequest {
+    string refresh_token = 1;
+}
+
+message ValidateRequest{
+    string access_token = 1;
+}
+
+message LogoutRequest {
+    string user_id = 1;
+    string refresh_token = 2;
+}
+
+message UpdateProfileRequest {
+    string user_id = 1;
+    string username = 2;
+    string first_name = 3;
+    string last_name = 4;
+    string avatar_url = 5;
+}
+
+message AuthResponse {
+    bool success = 1;
+    string message = 2;
+    string access_token = 3;
+    string refresh_token = 4;
+    User user = 5;
+    google.protobuf.Timestamp expires_at = 6;
+}
+
+message ValidateResponse {
+    bool is_valid = 1;
+    string user_id = 2;
+    string error = 3;
+}
+
+message LogoutResponse {
+    bool success = 1;
+}
+
+message ProfileResponse {
+    User user = 1;
+}
