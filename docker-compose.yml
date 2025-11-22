@@ -23,5 +23,27 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
 
+  auth_service:
+    build: .
+    command: python3 -m services.auth.server
+    ports:
+      - "50051:50051"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  presence_service:
+    build: .
+    command: python3 -m services.presence.server
+    ports:
+      - "50053:50053"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - rabbitmq
+
 volumes:
   postgres_data:

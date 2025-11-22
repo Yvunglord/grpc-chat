@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 
 from generated import auth_pb2
@@ -14,6 +14,7 @@ from .security import (
     datetime_to_proto
 )
 from shared.config import settings
+from shared.message_broker import message_broker, EventType
 
 class AuthService:
     def __init__(self, db: Session):
@@ -55,6 +56,19 @@ class AuthService:
         
         self._save_refresh_token(user.id, refresh_token)
 
+        message_broker.publish(
+            EventType.USER_REGISTERED,
+            f"user.{user.id}.registered",
+            {
+                "user_id": str(user.id),
+                "email": user.email,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
         return auth_pb2.AuthResponse(
             success=True,
             message="User registered successfully",
@@ -89,6 +103,17 @@ class AuthService:
         refresh_token = create_refresh_token({"sub": str(user.id)})
         
         self._save_refresh_token(user.id, refresh_token)
+
+        message_broker.publish(
+            EventType.USER_LOGGED_IN,
+            f"user.{user.id}.login",
+            {
+                "user_id": str(user.id),
+                "email": user.email,
+                "username": user.username,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
 
         return auth_pb2.AuthResponse(
             success=True,
@@ -174,6 +199,16 @@ class AuthService:
             user.last_seen = datetime.utcnow()
 
         self.db.commit()
+
+        message_broker.publish(
+            EventType.USER_LOGGED_OUT,
+            f"user.{request.user_id}.logout",
+            {
+                "user_id": request.user_id,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
         return auth_pb2.LogoutResponse(success=True)
 
     def update_profile(self, request: auth_pb2.UpdateProfileRequest) -> auth_pb2.ProfileResponse:
@@ -193,6 +228,19 @@ class AuthService:
         user.updated_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(user)
+
+        message_broker.publish(
+            EventType.USER_PROFILE_UPDATED,
+            f"user.{request.user_id}.profile_updated",
+            {
+                "user_id": request.user_id,
+                "username": request.username,
+                "first_name": request.first_name,
+                "last_name": request.last_name,
+                "avatar_url": request.avatar_url,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
 
         return auth_pb2.ProfileResponse(user=self._user_to_proto(user))
 

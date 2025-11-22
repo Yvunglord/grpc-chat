@@ -47,14 +47,12 @@ class AuthServicer(auth_pb2_grpc.AuthServiceServicer):
             return service.update_profile(request)
 
 def serve():
-    # Инициализируем базу данных
     init_db()
     
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     auth_pb2_grpc.add_AuthServiceServicer_to_server(AuthServicer(), server)
     server.add_insecure_port(f'[::]:{settings.AUTH_SERVICE_PORT}')
     
-    # Обработка graceful shutdown
     def graceful_shutdown(signum, frame):
         logging.info("Received shutdown signal")
         server.stop(5)
